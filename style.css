@@ -1,0 +1,51 @@
+body {
+  font-family: Arial, sans-serif;
+  background: #121212;
+  color: white;
+  margin: 0;
+  padding: 0;
+}
+
+.login-container, .perfil-container, .chat-container {
+  max-width: 400px;
+  margin: 50px auto;
+  padding: 20px;
+  background: #1e1e1e;
+  border-radius: 10px;
+}
+
+input, button {
+  width: 100%;
+  padding: 10px;
+  margin: 10px 0;
+  border: none;
+  border-radius: 5px;
+}
+
+button {
+  background: #00bfa5;
+  color: white;
+  font-weight: bold;
+  cursor: pointer;
+}
+
+.mensagens {
+  height: 300px;
+  overflow-y: scroll;
+  border: 1px solid #333;
+  padding: 10px;
+  margin-bottom: 10px;
+  background: #000;
+}
+
+.mensagem {
+  display: flex;
+  margin-bottom: 10px;
+}
+
+.foto {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  margin-right: 10px;
+}

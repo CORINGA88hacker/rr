@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <title>Escolher Perfil</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="perfil-container">
+    <h1>Escolha seu Nome e Foto</h1>
+    <form id="perfilForm">
+      <input type="text" id="nome" placeholder="Nome de Exibição" required>
+      <input type="file" id="foto" accept="image/*">
+      <button type="submit">Entrar no Chat</button>
+    </form>
+  </div>
+  <script>
+    document.getElementById('perfilForm').addEventListener('submit', function(e) {
+      e.preventDefault();
+      const nome = document.getElementById('nome').value;
+      const fotoFile = document.getElementById('foto').files[0];
+      if (!nome) {
+        alert('Digite seu nome.');
+        return;
+      }
+      const reader = new FileReader();
+      reader.onload = function () {
+        localStorage.setItem('chatUser', JSON.stringify({ nome: nome, foto: reader.result }));
+        window.location.href = 'chat.html';
+      };
+      if (fotoFile) {
+        reader.readAsDataURL(fotoFile);
+      } else {
+        localStorage.setItem('chatUser', JSON.stringify({ nome: nome, foto: '' }));
+        window.location.href = 'chat.html';
+      }
+    });
+  </script>
+</body>
+</html>
