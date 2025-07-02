@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <title>Consulta CPF - Chat</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: #e9ecef;
+      padding: 20px;
+    }
+    .chat-box {
+      max-width: 650px;
+      margin: auto;
+      background: white;
+      padding: 20px;
+      border-radius: 10px;
+      box-shadow: 0 0 12px rgba(0,0,0,0.1);
+    }
+    .messages {
+      max-height: 400px;
+      overflow-y: auto;
+      margin-bottom: 15px;
+    }
+    .message {
+      padding: 10px;
+      margin: 6px 0;
+      border-radius: 6px;
+    }
+    .user {
+      background-color: #d1e7dd;
+      text-align: right;
+    }
+    .bot {
+      background-color: #f8d7da;
+      white-space: pre-line;
+    }
+    input[type="text"] {
+      width: 70%;
+      padding: 10px;
+    }
+    button {
+      padding: 10px 15px;
+      background: #007bff;
+      color: white;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+    }
+    button:hover {
+      background: #0056b3;
+    }
+  </style>
+</head>
+<body>
+  <div class="chat-box">
+    <div class="messages" id="messages"></div>
+    <input type="text" id="cpfInput" placeholder="Digite o CPF (apenas números)" />
+    <button onclick="consultarCPF()">Consultar</button>
+  </div>
+
+  <script>
+    function addMessage(text, sender) {
+      const div = document.createElement('div');
+      div.className = `message ${sender}`;
+      div.innerText = text;
+      document.getElementById('messages').appendChild(div);
+      document.getElementById('messages').scrollTop = document.getElementById('messages').scrollHeight;
+    }
+
+    async function consultarCPF() {
+      const cpf = document.getElementById('cpfInput').value.trim();
+      if (!cpf.match(/^\d{11}$/)) {
+        addMessage("CPF inválido. Digite 11 números.", "bot");
+        return;
+      }
+
+      addMessage("Consultando CPF: " + cpf, "user");
+
+      try {
+        const response = await fetch(`https://patronhost.online/apis/cpf.php?cpf=${cpf}`);
+        const json = await response.json();
+
+        if (!json.status || !json.dados) {
+          addMessage("CPF não encontrado ou erro na consulta.", "bot");
+        } else {
+          const d = json.dados;
+
+          const info = `
+✅ Consulta Realizada com Sucesso
+
+👤 Nome: ${d.nome}
+👩‍🦰 Mãe: ${d.mae}
+👨‍🦰 Pai: ${d.pai}
+📅 Nascimento: ${d.data_nascimento}
+🧬 Sexo: ${d.sexo} | Raça: ${d.raca}
+🌎 Nacionalidade: ${d.nacionalidade}
+🏙️ Nascido em: ${d.municipio_nascimento}
+⚰️ Óbito: ${d.data_obito}
+
+🏠 Endereço:
+${d.tipo_logradouro} ${d.logradouro}, Nº ${d.numero}
+Bairro: ${d.bairro}
+CEP: ${d.cep}
+Cidade: ${d.municipio_residencia}
+País: ${d.pais_residencia}
+
+📞 Contato:
+Telefone: (${d.telefone_ddd}) ${d.telefone_numero}
+CPF: ${d.cpf}
+          `.trim();
+
+          addMessage(info, "bot");
+        }
+      } catch (error) {
+        console.error(error);
+        addMessage("Erro ao consultar o CPF. Tente novamente mais tarde.", "bot");
+      }
+    }
+  </script>
+</body>
+</html>
