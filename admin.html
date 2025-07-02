@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Extrair Imagens do PDF</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css"/>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap" rel="stylesheet">
+  <style>
+    * { box-sizing: border-box; }
+    body {
+      background-color: #1e1e2f;
+      color: #e0d7f3;
+      font-family: 'Roboto', sans-serif;
+      padding: 20px;
+      margin: 0;
+    }
+    h1 {
+      color: #b88ade;
+      margin-bottom: 20px;
+      font-size: 2rem;
+      text-align: center;
+    }
+    .controls {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: 10px;
+      margin-bottom: 30px;
+    }
+    button, input[type="file"], select {
+      background-color: #b88ade;
+      border: none;
+      color: #000;
+      padding: 12px 20px;
+      font-size: 1rem;
+      cursor: pointer;
+      border-radius: 8px;
+      transition: background 0.3s;
+    }
+    button:hover, input[type="file"]:hover, select:hover {
+      background-color: #d3b6f0;
+    }
+    .preview {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 15px;
+      justify-content: center;
+      animation: fadeIn 1s ease-in;
+    }
+    .img-wrapper {
+      position: relative;
+    }
+    .img-wrapper img {
+      width: 150px;
+      height: auto;
+      border-radius: 10px;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.5);
+      transition: transform 0.3s;
+    }
+    .img-wrapper img:hover {
+      transform: scale(1.05);
+    }
+    .remove-btn {
+      position: absolute;
+      top: 5px;
+      right: 5px;
+      background-color: red;
+      color: white;
+      border: none;
+      border-radius: 50%;
+      width: 25px;
+      height: 25px;
+      cursor: pointer;
+      font-weight: bold;
+    }
+    footer {
+      margin-top: 40px;
+      text-align: center;
+      color: #666;
+      font-size: 0.9rem;
+    }
+  </style>
+</head>
+<body>
+  <h1 class="animate__animated animate__fadeInDown">Extrair Imagens do PDF</h1>
+  <div class="controls animate__animated animate__fadeInUp">
+    <input type="file" id="pdfFile" accept="application/pdf">
+    <select id="quality">
+      <option value="1">Qualidade Baixa</option>
+      <option value="2" selected>Qualidade Média</option>
+      <option value="3">Qualidade Alta</option>
+    </select>
+    <button id="downloadBtn">Baixar ZIP</button>
+  </div>
+  <div class="preview" id="preview"></div>
+  <footer class="animate__animated animate__fadeInUp">Desenvolvido por maninho © 2025</footer>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.4.120/pdf.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
+  <script>
+    const preview = document.getElementById("preview");
+    const fileInput = document.getElementById("pdfFile");
+    const qualityInput = document.getElementById("quality");
+    const downloadBtn = document.getElementById("downloadBtn");
+    let imageList = [];
+
+    fileInput.addEventListener("change", () => {
+      if (fileInput.files.length > 0) {
+        extractImages();
+      }
+    });
+
+    async function extractImages() {
+      const file = fileInput.files[0];
+      preview.innerHTML = '';
+      imageList = [];
+
+      if (!file || file.type !== 'application/pdf') {
+        alert("Selecione um arquivo PDF válido.");
+        return;
+      }
+
+      const scale = parseFloat(qualityInput.value);
+      const reader = new FileReader();
+
+      reader.onload = async function () {
+        const typedarray = new Uint8Array(this.result);
+        const pdf = await pdfjsLib.getDocument({ data: typedarray }).promise;
+
+        for (let i = 1; i <= pdf.numPages; i++) {
+          const page = await pdf.getPage(i);
+          const viewport = page.getViewport({ scale });
+
+          const canvas = document.createElement("canvas");
+          const context = canvas.getContext("2d");
+          canvas.width = viewport.width;
+          canvas.height = viewport.height;
+
+          await page.render({ canvasContext: context, viewport }).promise;
+
+          const name = String(i).padStart(2, '0');
+
+          await new Promise(resolve => {
+            canvas.toBlob(blob => {
+              if (blob) {
+                const filename = name + ".png";
+                const obj = { name: filename, blob };
+                imageList.push(obj);
+
+                const imgURL = URL.createObjectURL(blob);
+                const img = document.createElement('img');
+                img.src = imgURL;
+                img.classList.add("animate__animated", "animate__zoomIn");
+
+                const wrapper = document.createElement("div");
+                wrapper.className = "img-wrapper";
+
+                const removeBtn = document.createElement("button");
+                removeBtn.className = "remove-btn";
+                removeBtn.innerText = "X";
+                removeBtn.onclick = () => {
+                  wrapper.remove();
+                  imageList = imageList.filter(e => e.name !== filename);
+                };
+
+                wrapper.appendChild(img);
+                wrapper.appendChild(removeBtn);
+                preview.appendChild(wrapper);
+              }
+              resolve();
+            }, "image/png");
+          });
+        }
+      };
+
+      reader.readAsArrayBuffer(file);
+    }
+
+    downloadBtn.addEventListener("click", () => {
+      if (imageList.length === 0) {
+        alert("Nenhuma imagem para baixar.");
+        return;
+      }
+
+      const zip = new JSZip();
+      const folder = zip.folder("imagens");
+
+      imageList.forEach(({ name, blob }) => {
+        folder.file(name, blob);
+      });
+
+      zip.generateAsync({ type: "blob" }).then(content => {
+        saveAs(content, "imagens_pdf.zip");
+      });
+    });
+  </script>
+</body>
+</html>

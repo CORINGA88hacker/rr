@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Juntar Imagens Verticalmente</title>
+  <style>
+    body {
+      background-color: #1e1e2f;
+      color: #e0d7f3;
+      font-family: Arial, sans-serif;
+      padding: 20px;
+    }
+    h1 {
+      text-align: center;
+      color: #b88ade;
+    }
+    .controls, .preview {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 20px;
+    }
+    input[type="file"], button {
+      background-color: #b88ade;
+      color: #000;
+      border: none;
+      padding: 10px 20px;
+      border-radius: 8px;
+      cursor: pointer;
+    }
+    input[type="number"] {
+      width: 60px;
+    }
+    .image-order {
+      display: flex;
+      flex-direction: column;
+      gap: 5px;
+    }
+    .image-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    img {
+      height: 80px;
+      border-radius: 4px;
+    }
+  </style>
+</head>
+<body>
+  <h1>Juntar Imagens em uma só (Vertical)</h1>
+  <div class="controls">
+    <input type="file" id="imgFiles" accept="image/*" multiple>
+    <div class="image-order" id="imageOrder"></div>
+    <button onclick="mergeImages()">Juntar Imagens</button>
+  </div>
+  <div class="preview" id="preview"></div>
+
+  <script>
+    const imgInput = document.getElementById('imgFiles');
+    const imageOrderDiv = document.getElementById('imageOrder');
+    const preview = document.getElementById('preview');
+    let images = [];
+
+    imgInput.addEventListener('change', () => {
+      images = [];
+      imageOrderDiv.innerHTML = '';
+
+      Array.from(imgInput.files).forEach((file, index) => {
+        const reader = new FileReader();
+        reader.onload = function (e) {
+          const src = e.target.result;
+          images.push({ file, src, order: index });
+
+          const div = document.createElement('div');
+          div.className = 'image-row';
+
+          const img = document.createElement('img');
+          img.src = src;
+
+          const input = document.createElement('input');
+          input.type = 'number';
+          input.min = 0;
+          input.value = index;
+          input.oninput = () => images[index].order = parseInt(input.value);
+
+          div.appendChild(img);
+          div.appendChild(input);
+          imageOrderDiv.appendChild(div);
+        };
+        reader.readAsDataURL(file);
+      });
+    });
+
+    async function mergeImages() {
+      if (images.length === 0) return;
+
+      images.sort((a, b) => a.order - b.order);
+
+      const loadedImages = await Promise.all(
+        images.map(({ src }) => new Promise(resolve => {
+          const img = new Image();
+          img.onload = () => resolve(img);
+          img.src = src;
+        }))
+      );
+
+      const width = Math.max(...loadedImages.map(img => img.width));
+      const height = loadedImages.reduce((sum, img) => sum + img.height, 0);
+
+      const canvas = document.createElement('canvas');
+      canvas.width = width;
+      canvas.height = height;
+      const ctx = canvas.getContext('2d');
+
+      let y = 0;
+      for (const img of loadedImages) {
+        ctx.drawImage(img, 0, y, img.width, img.height);
+        y += img.height;
+      }
+
+      canvas.toBlob(blob => {
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = 'imagem_juntada.png';
+        link.click();
+      }, 'image/png');
+
+      preview.innerHTML = '';
+      const resultImg = new Image();
+      resultImg.src = canvas.toDataURL();
+      resultImg.style.maxWidth = '100%';
+      preview.appendChild(resultImg);
+    }
+  </script>
+</body>
+</html>
